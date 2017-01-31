@@ -45,9 +45,6 @@ class Stagers:
                 self.headers.append(h)
 
 
-        cur.execute("SELECT default_profile FROM config")
-        self.userAgent = (cur.fetchone()[0]).split("|")[1]
-
         cur.close()
 
         # pull out staging information from the main menu
