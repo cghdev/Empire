@@ -108,7 +108,7 @@ class Stagers:
         stager = stager.replace("REPLACE_STAGING_KEY", key)
         hosth = ""
         if self.headers:
-            for h in headers:
+            for h in self.headers:
                 if 'Host' in h:
                     hosth = h[1]
         stager = stager.replace("REPLACE_HOST", hosth)
@@ -154,7 +154,7 @@ class Stagers:
         stager = stager.replace("REPLACE_STAGING_KEY", key)
         hosth = ""
         if self.headers:
-            for h in headers:
+            for h in self.headers:
                 if 'Host' in h:
                     hosth = h[1]
         stager = stager.replace("REPLACE_HOST", hosth)
